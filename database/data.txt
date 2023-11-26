@@ -1,0 +1,1 @@
+platNum:[kt, 1280, sc] | platDate: [21, . ,34]

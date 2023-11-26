@@ -3,6 +3,8 @@ import cv2
 import numpy as np
 import torch
 
+import easyocr
+
 from PIL import Image
 from matplotlib import pyplot as plt
 
@@ -34,15 +36,13 @@ def trigger_image_on_center(detected_image, frame):
             bbox = det[:4].cpu().numpy().astype(int)
             center_y = (bbox[1] + bbox[3]) // 2
 
-            cv2.rectangle(detected_image, (bbox[0], center_y - 5), (bbox[2], center_y + 5), (255, 0, 0), 2)
+            cv2.rectangle(detected_image, (bbox[0], center_y - 5), (bbox[2], center_y + 5), (255, 0, 0), 10)
 
-            if horizontal_line_y - 5 <= center_y <= horizontal_line_y + 5:
+            if horizontal_line_y - 20 <= center_y <= horizontal_line_y + 20:
                     
                 zoom_and_save_image(results.xyxy[0].cpu().numpy(), frame)
-                detect_plat_information()
 
-                text_items.append("License Plate Detected: Got it!")
-                text_list.write("\n".join(text_items))
+                
 
 def zoom_and_save_image(boxes, img):
     i = 0
@@ -84,18 +84,63 @@ def zoom_and_save_image(boxes, img):
 
             # Save the image
             plt.savefig(f'output/cropped/temp.png', bbox_inches='tight', pad_inches=0)
+            detect_plat_information()
+
 
         except Exception as e:
             print(f"Error processing object: {e}")
             continue
     
+def save_plat_info_txt(text):
+    with open('database/data.txt', 'a') as file:
+        file.write('text\n')
 
 def detect_plat_information():
     img = "output/cropped/temp.png"
 
     results = cropped_model(img)
-    results.print()
+    boxes = results.xyxy[0].cpu().numpy()
 
+    # Define labels for platNum and platDate
+    target_labels = ["platNum", "PlatDate"]
+
+    for box in boxes:
+        try:
+            x1, y1, x2, y2, confidence, class_idx = box
+            detected_label = cropped_model.names[int(class_idx)]
+
+            print(f"Detected label: {detected_label}")
+
+            # Check if the detected label matches platNum or platDate
+            if any(target_label in detected_label for target_label in target_labels):
+                # Calculate the width and height of the bounding box
+                width = x2 - x1
+                height = y2 - y1
+
+                # Crop the object from the original image
+                cropped_object = cv2.imread(img)
+                cropped_object = cropped_object[int(y1):int(y2), int(x1):int(x2)]
+
+                read_plat_information(detected_label, cropped_object)
+            
+            
+            
+
+        except Exception as e:
+            print(f"Error processing object: {e}")
+            continue
+
+
+
+def read_plat_information(detected_label, img):
+    reader = easyocr.Reader(['en'])
+
+    result = reader.readtext(img)
+    # Tampilkan hasil OCR
+    for detection in result:
+        text = detection[1]
+        text_items.append(f"{detected_label} : {text}")
+        text_list.write("\n".join(text_items))
 
 # Create a two-column layout for the app
 col1, col2 = st.columns(2)
@@ -153,9 +198,7 @@ with col2:
 
 
 
-def read_plat_information():
-    pass
 
-def save_plat_info_txt():
-    pass
+
+
 
