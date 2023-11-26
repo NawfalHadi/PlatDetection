@@ -1,7 +1,7 @@
 import streamlit as st
 import cv2
 import numpy as np
-from PIL import Image
+import torch
 
 # Set the page configuration
 st.set_page_config(
@@ -9,6 +9,16 @@ st.set_page_config(
     page_icon="📷",
     layout="wide",  # Set the layout to wide
 )
+
+# Function to load the YOLOv5 models
+@st.cache_resource()
+def load_models():
+    plat_model = torch.hub.load('ultralytics/yolov5', 'custom', path='model/plat/best.pt')
+    cropped_model = torch.hub.load('ultralytics/yolov5', 'custom', path='model/information/best.pt')
+    return plat_model, cropped_model
+
+# Load YOLOv5 models outside the main Streamlit loop
+plat_model, cropped_model = load_models()
 
 # Create a two-column layout for the app
 col1, col2 = st.columns(2)
