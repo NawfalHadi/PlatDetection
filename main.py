@@ -2,6 +2,7 @@ import streamlit as st
 import cv2
 import numpy as np
 import torch
+import re
 
 import easyocr
 
@@ -26,22 +27,32 @@ def load_models():
 # Load YOLOv5 models outside the main Streamlit loop
 plat_model, cropped_model = load_models()
 
+plat_date_any = False
+plat_num_any = False
+
+trigger_executed = False
+
 
 def trigger_image_on_center(detected_image, frame):
+    # Use the global keyword to modify the global variable
+    global trigger_executed
+    global plat_date_any
+    global plat_num_any
+
     horizontal_line_y = frame.shape[0] // 2 + 24
         
     cv2.line(detected_image, (0, horizontal_line_y), (frame.shape[1], frame.shape[0] // 2 + 22), (0, 255, 0), 2)
 
-    for det in results.xyxy[0]:
-        if det[-1] == 0: 
-            bbox = det[:4].cpu().numpy().astype(int)
-            center_y = (bbox[1] + bbox[3]) // 2
+    if not trigger_executed:
+        for det in results.xyxy[0]:
+            if det[-1] == 0: 
+                bbox = det[:4].cpu().numpy().astype(int)
+                center_y = (bbox[1] + bbox[3]) // 2
 
-            cv2.rectangle(detected_image, (bbox[0], center_y - 5), (bbox[2], center_y + 5), (255, 0, 0), 5)
+                cv2.rectangle(detected_image, (bbox[0], center_y - 5), (bbox[2], center_y + 5), (255, 0, 0), 5)
 
-            if horizontal_line_y - 5 <= center_y <= horizontal_line_y + 5:
-                    
-                zoom_and_save_image(results.xyxy[0].cpu().numpy(), frame)
+                if horizontal_line_y - 5 <= center_y <= horizontal_line_y + 5:
+                    zoom_and_save_image(results.xyxy[0].cpu().numpy(), frame)
 
                 
 
@@ -134,6 +145,11 @@ def detect_plat_information():
 
 
 def read_plat_information(detected_label, img):
+    # Use the global keyword to modify the global variable
+    global trigger_executed
+    global plat_date_any
+    global plat_num_any
+
     reader = easyocr.Reader(['en'])
 
     result = reader.readtext(img)
@@ -142,6 +158,27 @@ def read_plat_information(detected_label, img):
         text = detection[1]
         text_items.append(f"{detected_label} : {text}")
         text_list.write("\n".join(text_items))
+
+        if detected_label == "platNum" and text != "":
+            plat_num_any = True
+        elif detected_label == "PlatDate" and text != "":
+            numbers = re.findall(r'\d+', text)
+            if len(numbers) >= 2:
+                number1 = int(numbers[0])
+                number2 = int(numbers[1])
+
+                if int(number2) < 30:
+                    text_items.append(f"Plat Nomor Masih Aktif")
+                    text_list.write("\n".join(text_items))
+                else:
+                    text_items.append(f"Plat Nomor Sudah Tidak Aktif")
+                    text_list.write("\n".join(text_items))
+
+            plat_date_any = True
+        
+        if plat_num_any and plat_date_any:
+            trigger_executed = True
+
 
 
 # Create a two-column layout for the app
