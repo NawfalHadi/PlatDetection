@@ -39,6 +39,7 @@ def trigger_image_on_center(detected_image, frame):
             if horizontal_line_y - 5 <= center_y <= horizontal_line_y + 5:
                     
                 zoom_and_save_image(results.xyxy[0].cpu().numpy(), frame)
+                detect_plat_information()
 
                 text_items.append("License Plate Detected: Got it!")
                 text_list.write("\n".join(text_items))
@@ -87,6 +88,14 @@ def zoom_and_save_image(boxes, img):
         except Exception as e:
             print(f"Error processing object: {e}")
             continue
+    
+
+def detect_plat_information():
+    img = "output/cropped/temp.png"
+
+    results = cropped_model(img)
+    results.print()
+
 
 # Create a two-column layout for the app
 col1, col2 = st.columns(2)
@@ -143,8 +152,6 @@ with col2:
     print("finish")
 
 
-def detect_plat_informationO():
-    pass
 
 def read_plat_information():
     pass
