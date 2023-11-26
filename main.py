@@ -4,6 +4,8 @@ import numpy as np
 import torch
 
 from PIL import Image
+from matplotlib import pyplot as plt
+
 
 # Set the page configuration
 st.set_page_config(
@@ -22,6 +24,70 @@ def load_models():
 # Load YOLOv5 models outside the main Streamlit loop
 plat_model, cropped_model = load_models()
 
+def trigger_image_on_center(detected_image, frame):
+    horizontal_line_y = frame.shape[0] // 2 + 24
+        
+    cv2.line(detected_image, (0, horizontal_line_y), (frame.shape[1], frame.shape[0] // 2 + 22), (0, 255, 0), 2)
+
+    for det in results.xyxy[0]:
+        if det[-1] == 0: 
+            bbox = det[:4].cpu().numpy().astype(int)
+            center_y = (bbox[1] + bbox[3]) // 2
+
+            cv2.rectangle(detected_image, (bbox[0], center_y - 5), (bbox[2], center_y + 5), (255, 0, 0), 2)
+
+            if horizontal_line_y - 5 <= center_y <= horizontal_line_y + 5:
+                    
+                zoom_and_save_image(results.xyxy[0].cpu().numpy(), frame)
+
+                text_items.append("License Plate Detected: Got it!")
+                text_list.write("\n".join(text_items))
+
+def zoom_and_save_image(boxes, img):
+    i = 0
+
+    for box in boxes:
+        i += 1
+        try:
+            x1, y1, x2, y2, confidence, class_idx = box
+            # Calculate the width and height of the bounding box
+            width = x2 - x1
+            height = y2 - y1
+
+            # Determine the center of the bounding box
+            center_x = x1 + width / 2
+            center_y = y1 + height / 2
+
+            # Define a desired width and height for the cropped object
+            desired_width = 600  # Adjust this value to your preference
+            desired_height = 200  # Adjust this value to your preference
+
+            # Calculate the new coordinates for cropping
+            new_x1 = int(center_x - desired_width / 2)
+            new_y1 = int(center_y - desired_height / 2)
+            new_x2 = int(center_x + desired_width / 2)
+            new_y2 = int(center_y + desired_height / 2)
+
+            # Crop the object from the original image
+            cropped_object = img[new_y1:new_y2, new_x1:new_x2]
+            
+            
+            # Display or save the cropped object
+            plt.imshow(cropped_object)
+            plt.show()
+
+            # Turn off axis labels and ticks
+            plt.axis('off')
+            plt.xticks([])
+            plt.yticks([])
+
+            # Save the image
+            plt.savefig(f'output/cropped/temp.png', bbox_inches='tight', pad_inches=0)
+
+        except Exception as e:
+            print(f"Error processing object: {e}")
+            continue
+
 # Create a two-column layout for the app
 col1, col2 = st.columns(2)
 
@@ -39,7 +105,7 @@ with col1:
 with col2:
     st.header("Camera Feed")
 
-    cap = cv2.VideoCapture("test/video.mp4")
+    cap = cv2.VideoCapture(0)
     frame_placeholder = st.empty()
     stop_button_pressed = st.button("Stop")
 
@@ -51,12 +117,17 @@ with col2:
             break
 
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # Y-coordinate of the horizontal line
         
         results = plat_model(frame)
-        results.print()
-        image_data = results.ims[0]
+        detected_image = frame.copy()
 
-        pil_image = Image.fromarray(image_data.astype("uint8"))
+        trigger_image_on_center(detected_image, frame)
+
+        # image_data = results.ims[0]
+
+        pil_image = Image.fromarray(detected_image.astype("uint8"))
 
         frame_placeholder.image(pil_image, channels="RGB")
 
@@ -69,4 +140,15 @@ with col2:
             break
 
     cap.release()
+    print("finish")
+
+
+def detect_plat_informationO():
+    pass
+
+def read_plat_information():
+    pass
+
+def save_plat_info_txt():
+    pass
 
