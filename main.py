@@ -3,8 +3,12 @@ import cv2
 import numpy as np
 from PIL import Image
 
-# Title of the app
-st.title("Camera and Text Streamlit App")
+# Set the page configuration
+st.set_page_config(
+    page_title="Camera and Text Streamlit App",
+    page_icon="📷",
+    layout="wide",  # Set the layout to wide
+)
 
 # Create a two-column layout for the app
 col1, col2 = st.columns(2)
@@ -46,4 +50,3 @@ with col2:
             break
 
     cap.release()
-    cv2.destroyAllWindows()
