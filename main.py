@@ -3,6 +3,8 @@ import cv2
 import numpy as np
 import torch
 
+from PIL import Image
+
 # Set the page configuration
 st.set_page_config(
     page_title="Camera and Text Streamlit App",
@@ -37,7 +39,7 @@ with col1:
 with col2:
     st.header("Camera Feed")
 
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture("test/video.mp4")
     frame_placeholder = st.empty()
     stop_button_pressed = st.button("Stop")
 
@@ -49,14 +51,22 @@ with col2:
             break
 
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        frame_placeholder.image(frame, channels="RGB")
+        
+        results = plat_model(frame)
+        results.print()
+        image_data = results.ims[0]
 
-        # Add new text to the text_list on each iteration
-        new_text = f"New text: {np.random.randint(1, 100)}"
-        text_items.append(new_text)
-        text_list.write("\n".join(text_items))
+        pil_image = Image.fromarray(image_data.astype("uint8"))
+
+        frame_placeholder.image(pil_image, channels="RGB")
+
+        # # Add new text to the text_list on each iteration
+        # new_text = f"New text: {np.random.randint(1, 100)}"
+        # text_items.append(new_text)
+        # text_list.write("\n".join(text_items))
 
         if stop_button_pressed:
             break
 
     cap.release()
+
