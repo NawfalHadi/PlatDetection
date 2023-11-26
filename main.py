@@ -162,19 +162,20 @@ def read_plat_information(detected_label, img):
         if detected_label == "platNum" and text != "":
             plat_num_any = True
         elif detected_label == "PlatDate" and text != "":
+            plat_date_any = True
+
             numbers = re.findall(r'\d+', text)
             if len(numbers) >= 2:
                 number1 = int(numbers[0])
                 number2 = int(numbers[1])
 
-                if int(number2) < 30:
-                    text_items.append(f"Plat Nomor Masih Aktif")
+                if int(number2) < 20:
+                    # Display a success message
+                    st.success("Plat Nomor Masih Aktif")
                     text_list.write("\n".join(text_items))
                 else:
-                    text_items.append(f"Plat Nomor Sudah Tidak Aktif")
                     text_list.write("\n".join(text_items))
-
-            plat_date_any = True
+                    st.error("Plat Nomor Sudah Tidak Aktif")
         
         if plat_num_any and plat_date_any:
             trigger_executed = True
