@@ -26,21 +26,31 @@ def load_models():
 # Load YOLOv5 models outside the main Streamlit loop
 plat_model, cropped_model = load_models()
 
+# Initialize flags for PlatDate and PlatNum detection
+plat_date_detected = False
+plat_num_detected = False
+
+# Initialize a flag variable
+trigger_executed = False
+
 def trigger_image_on_center(detected_image, frame):
-    horizontal_line_y = frame.shape[0] // 2 + 24
-        
-    cv2.line(detected_image, (0, horizontal_line_y), (frame.shape[1], frame.shape[0] // 2 + 22), (0, 255, 0), 2)
+    # Use the global keyword to modify the global variable
+    global trigger_executed
 
-    for det in results.xyxy[0]:
-        if det[-1] == 0: 
-            bbox = det[:4].cpu().numpy().astype(int)
-            center_y = (bbox[1] + bbox[3]) // 2
+    if not plat_date_detected and not plat_num_detected and not trigger_executed:
+        horizontal_line_y = frame.shape[0] // 2 + 24
+            
+        cv2.line(detected_image, (0, horizontal_line_y), (frame.shape[1], frame.shape[0] // 2 + 22), (0, 255, 0), 2)
 
-            cv2.rectangle(detected_image, (bbox[0], center_y - 5), (bbox[2], center_y + 5), (255, 0, 0), 10)
+        for det in results.xyxy[0]:
+            if det[-1] == 0: 
+                bbox = det[:4].cpu().numpy().astype(int)
+                center_y = (bbox[1] + bbox[3]) // 2
 
-            if horizontal_line_y - 20 <= center_y <= horizontal_line_y + 20:
-                    
-                zoom_and_save_image(results.xyxy[0].cpu().numpy(), frame)
+                cv2.rectangle(detected_image, (bbox[0], center_y - 5), (bbox[2], center_y + 5), (255, 0, 0), 5)
+
+                if horizontal_line_y - 5 <= center_y <= horizontal_line_y + 5:   
+                    zoom_and_save_image(results.xyxy[0].cpu().numpy(), frame)
 
                 
 
@@ -55,23 +65,7 @@ def zoom_and_save_image(boxes, img):
             width = x2 - x1
             height = y2 - y1
 
-            # Determine the center of the bounding box
-            center_x = x1 + width / 2
-            center_y = y1 + height / 2
-
-            # Define a desired width and height for the cropped object
-            desired_width = 600  # Adjust this value to your preference
-            desired_height = 200  # Adjust this value to your preference
-
-            # Calculate the new coordinates for cropping
-            new_x1 = int(center_x - desired_width / 2)
-            new_y1 = int(center_y - desired_height / 2)
-            new_x2 = int(center_x + desired_width / 2)
-            new_y2 = int(center_y + desired_height / 2)
-
-            # Crop the object from the original image
-            cropped_object = img[new_y1:new_y2, new_x1:new_x2]
-            
+            cropped_object = img[int(y1):int(y2), int(x1):int(x2)]
             
             # Display or save the cropped object
             plt.imshow(cropped_object)
@@ -104,6 +98,8 @@ def detect_plat_information():
     # Define labels for platNum and platDate
     target_labels = ["platNum", "PlatDate"]
 
+    global plat_date_detected, plat_num_detected
+
     for box in boxes:
         try:
             x1, y1, x2, y2, confidence, class_idx = box
@@ -122,8 +118,7 @@ def detect_plat_information():
                 cropped_object = cropped_object[int(y1):int(y2), int(x1):int(x2)]
 
                 read_plat_information(detected_label, cropped_object)
-            
-            
+
             
 
         except Exception as e:
@@ -142,6 +137,9 @@ def read_plat_information(detected_label, img):
         text_items.append(f"{detected_label} : {text}")
         text_list.write("\n".join(text_items))
 
+    
+
+
 # Create a two-column layout for the app
 col1, col2 = st.columns(2)
 
@@ -159,7 +157,7 @@ with col1:
 with col2:
     st.header("Camera Feed")
 
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture("test/test.mp4")
     frame_placeholder = st.empty()
     stop_button_pressed = st.button("Stop")
 
