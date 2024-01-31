@@ -132,12 +132,12 @@ def detect_plat_information():
                 # Crop the object from the original image
                 cropped_object = cv2.imread(img)
                 cropped_object = cropped_object[int(y1):int(y2), int(x1):int(x2)]
+                cropped_object_bw = cv2.cvtColor(cropped_object, cv2.COLOR_BGR2GRAY)
+                # Increase the contrast
+                cropped_object_high_contrast = cv2.equalizeHist(cropped_object_bw)
 
                 read_plat_information(detected_label, cropped_object)
             
-            
-            
-
         except Exception as e:
             print(f"Error processing object: {e}")
             continue
@@ -164,19 +164,38 @@ def read_plat_information(detected_label, img):
         elif detected_label == "PlatDate" and text != "":
             plat_date_any = True
 
+            flag = 0
             numbers = re.findall(r'\d+', text)
             if len(numbers) >= 2:
                 number1 = int(numbers[0])
                 number2 = int(numbers[1])
 
-                if int(number2) < 20:
-                    # Display a success message
+                if int(number2) > 22:
                     st.success("Plat Nomor Masih Aktif")
                     text_list.write("\n".join(text_items))
+                elif int(number2) == 22:
+                    if int(number1) > 11:
+                        st.success("Plat Nomor Masih Aktif")
+                        text_list.write("\n".join(text_items))
+                    else:
+                        text_list.write("\n".join(text_items))
+                        st.error("Plat Nomor Sudah Tidak Aktif")
                 else:
                     text_list.write("\n".join(text_items))
                     st.error("Plat Nomor Sudah Tidak Aktif")
-        
+            else:
+                plat_date_any = False
+                flag += 1
+                if flag == 2:
+                    if int(text) > 23:
+                        st.success("Plat Nomor Masih Aktif")
+                        text_list.write("\n".join(text_items))
+                    else:
+                        text_list.write("\n".join(text_items))
+                        st.error("Plat Nomor Sudah Tidak Aktif")
+
+                
+
         if plat_num_any and plat_date_any:
             trigger_executed = True
 
